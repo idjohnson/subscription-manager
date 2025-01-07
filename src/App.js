@@ -10,6 +10,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog } from '@fortawesome/free-solid-svg-icons';
 import './App.css';
 
+const axiosInstance = axios.create();
+
+// Add a request interceptor to exclude authentication for /static paths
+axiosInstance.interceptors.request.use(config => {
+  if (config.url.startsWith('/static')) {
+    delete config.headers['Authorization'];
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
+
 function App() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,37 +60,52 @@ function App() {
 
   const fetchSubscriptions = async () => {
     try {
-      const response = await axios.get('/api/subscriptions');
+      const response = await axiosInstance.get('/api/subscriptions');
       setSubscriptions(response.data.map(sub => ({ ...sub, included: true })));
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
+      if (error.response && error.response.status === 404) {
+        alert('Subscriptions not found.');
+      } else {
+        alert('An error occurred while fetching subscriptions.');
+      }
     }
   };
 
   const fetchConfiguration = async () => {
     try {
       const [currencyResponse, ntfyResponse] = await Promise.all([
-        axios.get('/api/user-configuration'),
-        axios.get('/api/ntfy-settings')
+        axiosInstance.get('/api/user-configuration'),
+        axiosInstance.get('/api/ntfy-settings')
       ]);
       setCurrency(currencyResponse.data.currency);
       setNtfyTopic(ntfyResponse.data.topic);
       setNtfyDomain(ntfyResponse.data.domain);
     } catch (error) {
       console.error('Error fetching configuration:', error);
+      if (error.response && error.response.status === 404) {
+        alert('Configuration not found.');
+      } else {
+        alert('An error occurred while fetching configuration.');
+      }
     }
   };
 
   const addOrUpdateSubscription = async (subscription) => {
     try {
       if (subscription.id) {
-        await axios.put(`/api/subscriptions/${subscription.id}`, subscription);
+        await axiosInstance.put(`/api/subscriptions/${subscription.id}`, subscription);
       } else {
-        await axios.post('/api/subscriptions', subscription);
+        await axiosInstance.post('/api/subscriptions', subscription);
       }
       fetchSubscriptions();
     } catch (error) {
       console.error('Error adding/updating subscription:', error);
+      if (error.response && error.response.status === 404) {
+        alert('Subscription not found.');
+      } else {
+        alert('An error occurred while adding/updating subscription.');
+      }
     }
   };
 
@@ -96,10 +123,11 @@ function App() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this subscription?')) {
       try {
-        await axios.delete(`/api/subscriptions/${id}`);
+        await axiosInstance.delete(`/api/subscriptions/${id}`);
         fetchSubscriptions();
       } catch (error) {
         console.error('Error deleting subscription:', error);
+        alert('An error occurred while deleting the subscription.');
       }
     }
   };
@@ -113,17 +141,17 @@ function App() {
   const handleConfigurationSave = async (newConfig) => {
     try {
       await Promise.all([
-        axios.post('/api/user-configuration', { currency: newConfig.currency }),
-        axios.post('/api/ntfy-settings', { topic: newConfig.ntfyTopic, domain: newConfig.ntfyDomain })
+        axiosInstance.post('/api/user-configuration', { currency: newConfig.currency }),
+        axiosInstance.post('/api/ntfy-settings', { topic: newConfig.ntfyTopic, domain: newConfig.ntfyDomain })
       ]);
       setCurrency(newConfig.currency);
       setNtfyTopic(newConfig.ntfyTopic);
       setNtfyDomain(newConfig.ntfyDomain);
       setIsConfigModalOpen(false);
-      // Fetch subscriptions again to update with new currency
       fetchSubscriptions();
     } catch (error) {
       console.error('Error saving configuration:', error);
+      alert('An error occurred while saving the configuration.');
     }
   };
 
