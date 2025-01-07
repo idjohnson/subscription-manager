@@ -26,19 +26,25 @@ function App() {
   const username = process.env.REACT_APP_USERNAME;
   const password = process.env.REACT_APP_PASSWORD;
 
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username');
+    const storedPassword = localStorage.getItem('password');
+    if (storedUsername === username && storedPassword === password) {
+      setIsAuthenticated(true);
+    }
+    fetchSubscriptions();
+    fetchConfiguration();
+  }, []);
+
   const handleLogin = () => {
     if (usernameInput === username && passwordInput === password) {
+      localStorage.setItem('username', usernameInput);
+      localStorage.setItem('password', passwordInput);
       setIsAuthenticated(true);
     } else {
       alert('Incorrect username or password');
     }
   };
-
-
-  useEffect(() => {
-    fetchSubscriptions();
-    fetchConfiguration();
-  }, []);
 
   const fetchSubscriptions = async () => {
     try {
@@ -121,7 +127,6 @@ function App() {
     }
   };
 
-  
   if (!isAuthenticated) {
     return (
       <div className="app">
