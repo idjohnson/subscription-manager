@@ -16,5 +16,9 @@ COPY . .
 # Build the React app
 RUN npm run build
 
+ENV REACT_APP_USERNAME=testuser
+ENV REACT_APP_PASSWORD=testpass
+ENV HOST=0.0.0.0
+
 # Start the application using the dev script
 CMD ["npm", "run", "dev"]

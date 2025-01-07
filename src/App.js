@@ -19,6 +19,21 @@ function App() {
   const [currency, setCurrency] = useState('USD');
   const [ntfyTopic, setNtfyTopic] = useState('');
   const [ntfyDomain, setNtfyDomain] = useState('https://ntfy.sh');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+
+  const username = process.env.REACT_APP_USERNAME;
+  const password = process.env.REACT_APP_PASSWORD;
+
+  const handleLogin = () => {
+    if (usernameInput === username && passwordInput === password) {
+      setIsAuthenticated(true);
+    } else {
+      alert('Incorrect username or password');
+    }
+  };
+
 
   useEffect(() => {
     fetchSubscriptions();
@@ -106,55 +121,80 @@ function App() {
     }
   };
 
-  return (
-    <div className="app">
-      <div className="app-header">
-        <h1>Subscription Manager</h1>
-        <button 
-          className="config-button" 
-          onClick={() => setIsConfigModalOpen(true)}
-        >
-          <FontAwesomeIcon icon={faCog} /> Settings
-        </button>
+  
+  if (!isAuthenticated) {
+    return (
+      <div className="app">
+        <div className="app-header">
+          <div className="app-login">
+            <input
+              type="text"
+              placeholder="Username"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+            />
+            <button onClick={handleLogin}>Login</button>
+          </div>
+        </div>
       </div>
-      <CalendarGrid
-        subscriptions={subscriptions}
-        onDateClick={handleDateClick}
-        currentDate={new Date()}
-      />
-      {subscriptions.length > 0 && (
-        <SubscriptionList
+    );
+  } else {
+    return (
+      <div className="app">
+        <div className="app-header">
+          <h1>Subscription Manager</h1>
+          <button 
+            className="config-button" 
+            onClick={() => setIsConfigModalOpen(true)}
+          >
+            <FontAwesomeIcon icon={faCog} /> Settings
+          </button>
+        </div>
+        <CalendarGrid
           subscriptions={subscriptions}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onToggleInclude={handleToggleInclude}
+          onDateClick={handleDateClick}
+          currentDate={new Date()}
+        />
+        {subscriptions.length > 0 && (
+          <SubscriptionList
+            subscriptions={subscriptions}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggleInclude={handleToggleInclude}
+            currency={currency}
+          />
+        )}
+        <Totals subscriptions={subscriptions.filter(sub => sub.included)} currency={currency} />
+        {isModalOpen && (
+          <SubscriptionModal
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedSubscription(null);
+              setSelectedDate(null);
+            }}
+            onSave={addOrUpdateSubscription}
+            selectedSubscription={selectedSubscription}
+            selectedDate={selectedDate}
+            defaultCurrency={currency}
+          />
+        )}
+        <ConfigurationModal
+          isOpen={isConfigModalOpen}
+          onClose={() => setIsConfigModalOpen(false)}
           currency={currency}
+          ntfyTopic={ntfyTopic}
+          ntfyDomain={ntfyDomain}
+          onSave={handleConfigurationSave}
         />
-      )}
-      <Totals subscriptions={subscriptions.filter(sub => sub.included)} currency={currency} />
-      {isModalOpen && (
-        <SubscriptionModal
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedSubscription(null);
-            setSelectedDate(null);
-          }}
-          onSave={addOrUpdateSubscription}
-          selectedSubscription={selectedSubscription}
-          selectedDate={selectedDate}
-          defaultCurrency={currency}
-        />
-      )}
-      <ConfigurationModal
-        isOpen={isConfigModalOpen}
-        onClose={() => setIsConfigModalOpen(false)}
-        currency={currency}
-        ntfyTopic={ntfyTopic}
-        ntfyDomain={ntfyDomain}
-        onSave={handleConfigurationSave}
-      />
-    </div>
-  );
+      </div>
+    );
+  }
 }
 
 export default App;
